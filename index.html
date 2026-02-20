@@ -6,26 +6,26 @@
 <title>Microsoft Agent Ecosystem — Mind Map</title>
 <style>
   :root {
-    --bg: #0f1117;
-    --surface: #1a1d27;
-    --surface2: #242836;
-    --border: #2e3345;
-    --text: #e2e4ea;
-    --text-dim: #8b8fa3;
-    --accent: #4f8ff7;
-    --green: #10b981;
-    --yellow: #f59e0b;
-    --purple: #a78bfa;
-    --pink: #f472b6;
-    --cyan: #22d3ee;
-    --orange: #fb923c;
-    --red: #ef4444;
+    --bg: #f8f9fb;
+    --surface: #ffffff;
+    --surface2: #f0f1f5;
+    --border: #d8dbe5;
+    --text: #1a1d27;
+    --text-dim: #5f6478;
+    --accent: #2563eb;
+    --green: #059669;
+    --yellow: #d97706;
+    --purple: #7c3aed;
+    --pink: #db2777;
+    --cyan: #0891b2;
+    --orange: #ea580c;
+    --red: #dc2626;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
 
   /* Header */
-  .header { background: linear-gradient(135deg, #1e2235 0%, #141824 100%); border-bottom: 1px solid var(--border); padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; }
+  .header { background: linear-gradient(135deg, #eef1f8 0%, #e3e7f2 100%); border-bottom: 1px solid var(--border); padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; }
   .header h1 { font-size: 20px; font-weight: 600; }
   .header .badges { display: flex; gap: 10px; }
   .header .badge { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 2px 10px; font-size: 11px; color: var(--text-dim); }
@@ -36,12 +36,12 @@
   #mindmap-svg { width: 100%; display: block; }
   #mindmap-svg text { font-family: 'Segoe UI', system-ui, sans-serif; }
   #mindmap-svg .node-group { cursor: pointer; }
-  #mindmap-svg .node-group:hover .node-circle { filter: brightness(1.3); }
+  #mindmap-svg .node-group:hover .node-circle { filter: brightness(0.85); }
   #mindmap-svg .link { fill: none; stroke-width: 2.5; opacity: .4; }
   #mindmap-svg .link:hover { opacity: .7; }
 
   /* Tooltip */
-  .mm-tooltip { position: absolute; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; font-size: 12px; color: var(--text); pointer-events: none; opacity: 0; transition: opacity .15s; max-width: 380px; z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+  .mm-tooltip { position: absolute; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; font-size: 12px; color: var(--text); pointer-events: none; opacity: 0; transition: opacity .15s; max-width: 380px; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,.12); }
   .mm-tooltip.visible { opacity: 1; pointer-events: auto; }
   .mm-tooltip h4 { font-size: 13px; margin-bottom: 4px; }
   .mm-tooltip p { color: var(--text-dim); line-height: 1.5; }
@@ -54,11 +54,11 @@
   .mm-tooltip .tt-link-icon { font-size: 10px; color: var(--text-dim); flex-shrink: 0; width: 14px; text-align: center; }
 
   /* Controls */
-  .mm-controls { display: flex; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border); background: rgba(0,0,0,.2); align-items: center; flex-wrap: wrap; }
+  .mm-controls { display: flex; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface2); align-items: center; flex-wrap: wrap; }
   .mm-controls label { font-size: 12px; color: var(--text-dim); margin-right: 4px; }
   .mm-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 5px 12px; font-size: 12px; color: var(--text-dim); cursor: pointer; font-family: inherit; transition: all .2s; }
-  .mm-btn:hover { border-color: #555; color: var(--text); }
-  .mm-btn.active { background: rgba(79,143,247,.15); border-color: var(--accent); color: var(--accent); }
+  .mm-btn:hover { border-color: #aab; color: var(--text); }
+  .mm-btn.active { background: rgba(37,99,235,.1); border-color: var(--accent); color: var(--accent); }
   .mm-zoom { display: flex; gap: 4px; margin-left: auto; }
 </style>
 </head>
@@ -156,23 +156,23 @@ const mmData = {
 
 // ===== Color mappings =====
 const branchColors = {
-  platform: "#22d3ee",
-  channel: "#f472b6",
-  intelligence: "#a78bfa",
-  tools: "#22d3ee",
-  devtools: "#10b981",
+  platform: "#0891b2",
+  channel: "#db2777",
+  intelligence: "#7c3aed",
+  tools: "#0891b2",
+  devtools: "#059669",
 };
 const catColors = {
-  sdk: "#10b981",
-  platform: "#22d3ee",
-  api: "#a78bfa",
-  connector: "#22d3ee",
-  channel: "#f472b6",
-  tool: "#f59e0b",
-  governance: "#f59e0b",
-  intelligence: "#a78bfa",
+  sdk: "#059669",
+  platform: "#0891b2",
+  api: "#7c3aed",
+  connector: "#0891b2",
+  channel: "#db2777",
+  tool: "#d97706",
+  governance: "#d97706",
+  intelligence: "#7c3aed",
 };
-const statusColors = { "GA": "#10b981", "Preview": "#f59e0b", "Legacy": "#ef4444" };
+const statusColors = { "GA": "#059669", "Preview": "#d97706", "Legacy": "#dc2626" };
 
 let currentColorMode = 'branch';
 let svgZoom;
@@ -180,7 +180,7 @@ let currentTransform = null;
 
 function getNodeColor(d, mode) {
   const data = d.data;
-  if (data._root) return "#4f8ff7";
+  if (data._root) return "#2563eb";
   // Branch-level nodes (depth 1)
   if (data._branch) return branchColors[data._branch] || "#8b8fa3";
   if (mode === 'branch') return catColors[data._cat] || "#8b8fa3";
@@ -317,8 +317,8 @@ function renderMindMap() {
     })
     .attr('fill', d => {
       if (d.data._root) return '#fff';
-      if (hasHiddenChildren(d.data)) return '#fbbf24';
-      return '#e2e4ea';
+      if (hasHiddenChildren(d.data)) return '#b45309';
+      return '#1a1d27';
     })
     .attr('font-size', d => d.data._root ? 15 : (d.depth === 1 ? 14 : 13))
     .attr('font-weight', d => (d.data._root || d.depth === 1) ? '600' : '400')
@@ -336,7 +336,7 @@ function renderMindMap() {
       if (hasHiddenChildren(d.data)) {
         const count = d.data._collapsed.length;
         el.append('tspan')
-          .attr('fill', '#fbbf24')
+          .attr('fill', '#b45309')
           .attr('font-size', 10)
           .text(` (${count})`);
       }
@@ -377,7 +377,7 @@ function showTooltip(evt, d) {
   let desc = d.data._desc || '';
   if (hasHiddenChildren(d.data)) {
     const names = d.data._collapsed.map(c => c.name.replace(/\n/g,' ')).join(', ');
-    desc += (desc ? '<br><br>' : '') + '<strong style="color:#fbbf24">Collapsed children:</strong> ' + names + '<br><em style="color:#8b8fa3">Click to expand</em>';
+    desc += (desc ? '<br><br>' : '') + '<strong style="color:#b45309">Collapsed children:</strong> ' + names + '<br><em style="color:#8b8fa3">Click to expand</em>';
   } else if (d.data.children && d.data.children.length) {
     desc += (desc ? '<br><br>' : '') + '<em style="color:#8b8fa3">Click to collapse</em>';
   }
