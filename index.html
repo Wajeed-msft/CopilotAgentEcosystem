@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Microsoft Agent Ecosystem — Mind Map</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #242836;
+    --border: #2e3345;
+    --text: #e2e4ea;
+    --text-dim: #8b8fa3;
+    --accent: #4f8ff7;
+    --green: #10b981;
+    --yellow: #f59e0b;
+    --purple: #a78bfa;
+    --pink: #f472b6;
+    --cyan: #22d3ee;
+    --orange: #fb923c;
+    --red: #ef4444;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+
+  /* Header */
+  .header { background: linear-gradient(135deg, #1e2235 0%, #141824 100%); border-bottom: 1px solid var(--border); padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 20px; font-weight: 600; }
+  .header .badges { display: flex; gap: 10px; }
+  .header .badge { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 2px 10px; font-size: 11px; color: var(--text-dim); }
+
+  /* Mind Map Container */
+  #mindmap-container { width: 100%; background: var(--bg); overflow: hidden; position: relative; }
+  #mindmap-container.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; background: var(--bg); }
+  #mindmap-svg { width: 100%; display: block; }
+  #mindmap-svg text { font-family: 'Segoe UI', system-ui, sans-serif; }
+  #mindmap-svg .node-group { cursor: pointer; }
+  #mindmap-svg .node-group:hover .node-circle { filter: brightness(1.3); }
+  #mindmap-svg .link { fill: none; stroke-width: 2.5; opacity: .4; }
+  #mindmap-svg .link:hover { opacity: .7; }
+
+  /* Tooltip */
+  .mm-tooltip { position: absolute; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; font-size: 12px; color: var(--text); pointer-events: none; opacity: 0; transition: opacity .15s; max-width: 380px; z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+  .mm-tooltip.visible { opacity: 1; pointer-events: auto; }
+  .mm-tooltip h4 { font-size: 13px; margin-bottom: 4px; }
+  .mm-tooltip p { color: var(--text-dim); line-height: 1.5; }
+  .mm-tooltip .tt-status { display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 8px; margin-left: 6px; }
+  .mm-tooltip .tt-links { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+  .mm-tooltip .tt-links-title { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-dim); margin-bottom: 4px; }
+  .mm-tooltip .tt-link { display: flex; align-items: center; gap: 5px; padding: 3px 0; }
+  .mm-tooltip .tt-link a { color: var(--accent); text-decoration: none; font-size: 11px; transition: color .15s; }
+  .mm-tooltip .tt-link a:hover { color: #79b4ff; text-decoration: underline; }
+  .mm-tooltip .tt-link-icon { font-size: 10px; color: var(--text-dim); flex-shrink: 0; width: 14px; text-align: center; }
+
+  /* Controls */
+  .mm-controls { display: flex; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border); background: rgba(0,0,0,.2); align-items: center; flex-wrap: wrap; }
+  .mm-controls label { font-size: 12px; color: var(--text-dim); margin-right: 4px; }
+  .mm-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 5px 12px; font-size: 12px; color: var(--text-dim); cursor: pointer; font-family: inherit; transition: all .2s; }
+  .mm-btn:hover { border-color: #555; color: var(--text); }
+  .mm-btn.active { background: rgba(79,143,247,.15); border-color: var(--accent); color: var(--accent); }
+  .mm-zoom { display: flex; gap: 4px; margin-left: auto; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Microsoft Agent Ecosystem</h1>
+  <div class="badges">
+    <span class="badge">Internal Use</span>
+    <span class="badge">Last updated: Feb 2026</span>
+  </div>
+</div>
+
+<div id="mindmap-container">
+  <div class="mm-controls">
+    <label>Color:</label>
+    <button class="mm-btn active" onclick="recolorMap('branch', this)">Branch</button>
+    <button class="mm-btn" onclick="recolorMap('status', this)">Status</button>
+    <span style="width:1px; height:20px; background:var(--border); margin:0 6px;"></span>
+    <button class="mm-btn" onclick="expandAll()">Expand All</button>
+    <button class="mm-btn" onclick="collapseAll()">Collapse All</button>
+    <div class="mm-zoom">
+      <button class="mm-btn" onclick="resetZoom()">Reset</button>
+      <button class="mm-btn" onclick="zoomMap(1.3)">+</button>
+      <button class="mm-btn" onclick="zoomMap(0.7)">−</button>
+      <button class="mm-btn" id="fs-btn" onclick="toggleFullscreen()">&#x26F6; Fullscreen</button>
+    </div>
+  </div>
+  <svg id="mindmap-svg"></svg>
+  <div class="mm-tooltip" id="mm-tooltip">
+    <h4></h4>
+    <p></p>
+    <div id="tt-links"></div>
+  </div>
+</div>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+// ===== Mind Map Data — PM Ecosystem (exact match) =====
+const mmData = {
+  name: "Agent\nEcosystem",
+  _root: true,
+  children: [
+    {
+      name: "Agent Building\n& Orchestration",
+      _branch: "platform",
+      children: [
+        { name: "M365 Copilot\nAgent Builder", _cat: "platform", _st: "GA", _desc: "In-product agent builder within M365 Copilot. Create declarative agents with instructions, knowledge, and actions." },
+        { name: "Copilot\nStudio", _cat: "platform", _st: "GA", _desc: "Low-code/pro-code agent builder. 1400+ connectors, model choice, MCP, HITL." },
+        { name: "Microsoft\nFoundry", _cat: "platform", _st: "GA", _desc: "Code-first AI platform: 11K+ models, fine-tuning, evals, Agent Service." },
+        { name: "Agent\nFramework", _cat: "platform", _st: "Preview", _desc: "Open-source AI engine (SK + AutoGen). Graph workflows, DevUI, middleware.", _links: [{ l: "GitHub", u: "https://github.com/microsoft/agent-framework" }] },
+      ],
+    },
+    {
+      name: "SDKs",
+      _branch: "channel",
+      children: [
+        { name: "Channel &\nDeployment", _cat: "sdk", _st: "GA", _desc: "SDKs for deploying agents across channels.", children: [
+          { name: "M365\nAgents SDK", _cat: "sdk", _st: "GA", _desc: "Multi-channel framework (Teams, Copilot, Web, Slack, SMS). Replaces Bot Framework.", _links: [{ l: "GitHub", u: "https://github.com/microsoft/Agents" }] },
+          { name: "Teams SDK", _cat: "sdk", _st: "GA", _desc: "Teams-native: bots, tabs, extensions, dialogs + AI.", _links: [{ l: "GitHub", u: "https://github.com/microsoft/teams-sdk" }] },
+          { name: "Agents Client\nSDK (Native)", _cat: "sdk", _st: "GA", _desc: "Native SDKs: Android, iOS, Windows. Text, voice, adaptive cards." },
+        ]},
+        { name: "Gov, Control\n& Observability", _cat: "governance", _st: "Preview", _desc: "Enterprise governance and control plane for agent lifecycle.", children: [
+          { name: "Agent 365\nSDK", _cat: "governance", _st: "Preview", _desc: "Enterprise governance SDK. Entra Agent ID, notifications, OTEL, agent blueprints, governed MCP." },
+        ]},
+      ],
+    },
+    {
+      name: "Intelligence\nLayer",
+      _branch: "intelligence",
+      children: [
+        { name: "WorkIQ\nAPIs", _cat: "intelligence", _st: "GA", _desc: "Data + Memory + Inference for organizational intelligence." },
+        { name: "Foundry APIs", _cat: "intelligence", _st: "GA", _desc: "Model catalog, AI inference, fine-tuning, evaluations." },
+      ],
+    },
+    {
+      name: "Tools &\nConnectors",
+      _branch: "tools",
+      children: [
+        { name: "1P MCP\nServers", _cat: "connector", _st: "GA", _desc: "Microsoft-managed: Outlook, Calendar, Teams, SharePoint, Dataverse." },
+        { name: "DirectLine\nAPIs", _cat: "api", _st: "Legacy", _desc: "REST API for direct bot communication (legacy)." },
+      ],
+    },
+    {
+      name: "Developer\nTooling",
+      _branch: "devtools",
+      children: [
+        { name: "Agents\nToolkit", _cat: "tool", _st: "GA", _desc: "VS Code extension for scaffolding, debugging, deploying agents." },
+        { name: "A365 CLI", _cat: "tool", _st: "Preview", _desc: "Agent 365 CLI. Create blueprints, manage MCP servers, deploy, publish to admin center." },
+        { name: "WorkIQ\nCLI", _cat: "tool", _st: "Preview", _desc: "CLI + MCP server for M365 data in dev tools." },
+      ],
+    },
+  ],
+};
+
+// ===== Color mappings =====
+const branchColors = {
+  platform: "#22d3ee",
+  channel: "#f472b6",
+  intelligence: "#a78bfa",
+  tools: "#22d3ee",
+  devtools: "#10b981",
+};
+const catColors = {
+  sdk: "#10b981",
+  platform: "#22d3ee",
+  api: "#a78bfa",
+  connector: "#22d3ee",
+  channel: "#f472b6",
+  tool: "#f59e0b",
+  governance: "#f59e0b",
+  intelligence: "#a78bfa",
+};
+const statusColors = { "GA": "#10b981", "Preview": "#f59e0b", "Legacy": "#ef4444" };
+
+let currentColorMode = 'branch';
+let svgZoom;
+let currentTransform = null;
+
+function getNodeColor(d, mode) {
+  const data = d.data;
+  if (data._root) return "#4f8ff7";
+  // Branch-level nodes (depth 1)
+  if (data._branch) return branchColors[data._branch] || "#8b8fa3";
+  if (mode === 'branch') return catColors[data._cat] || "#8b8fa3";
+  if (mode === 'status') return statusColors[data._st] || "#8b8fa3";
+  return catColors[data._cat] || "#8b8fa3";
+}
+
+// ===== Collapse / Expand =====
+function toggleNode(dataNode) {
+  if (dataNode._collapsed) { dataNode.children = dataNode._collapsed; dataNode._collapsed = null; }
+  else if (dataNode.children) { dataNode._collapsed = dataNode.children; dataNode.children = null; }
+}
+function hasHiddenChildren(dataNode) { return !!dataNode._collapsed; }
+
+function renderMindMap() {
+  const container = document.getElementById('mindmap-container');
+  const width = container.clientWidth;
+  const height = Math.max(720, window.innerHeight - 100);
+  const svg = d3.select('#mindmap-svg').attr('width', width).attr('height', height);
+  svg.selectAll('*').remove();
+
+  const g = svg.append('g');
+  svgZoom = d3.zoom().scaleExtent([0.3, 3]).on('zoom', (e) => {
+    g.attr('transform', e.transform);
+    currentTransform = e.transform;
+  });
+  svg.call(svgZoom);
+
+  if (currentTransform) {
+    svg.call(svgZoom.transform, currentTransform);
+  } else {
+    const initialTransform = d3.zoomIdentity.translate(width / 2, height / 2);
+    svg.call(svgZoom.transform, initialTransform);
+    currentTransform = initialTransform;
+  }
+
+  const root = d3.hierarchy(mmData);
+  const radius = Math.min(width, height) / 2 - 100;
+  const treeLayout = d3.tree()
+    .size([2 * Math.PI, radius])
+    .separation((a, b) => {
+      if (a.depth <= 1) return (a.parent === b.parent ? 1 : 1.5);
+      return (a.parent === b.parent ? 1 : 1.5) / a.depth;
+    });
+  treeLayout(root);
+
+  // Force depth-1 branches to be evenly spaced around the circle
+  const depth1 = root.children || [];
+  const numBranches = depth1.length;
+  if (numBranches > 0) {
+    const angleStep = (2 * Math.PI) / numBranches;
+    const branchRadius = radius * 0.35;
+    depth1.forEach((branch, i) => {
+      const targetAngle = angleStep * i;
+      const dx = targetAngle - branch.x;
+      const dy = branchRadius - branch.y;
+      branch.x = targetAngle;
+      branch.y = branchRadius;
+      // shift subtree
+      branch.descendants().slice(1).forEach(n => { n.x += dx; n.y += dy; });
+    });
+  }
+
+  // ----- Links -----
+  g.selectAll('.link')
+    .data(root.links())
+    .join('path')
+    .attr('class', 'link')
+    .attr('d', d3.linkRadial().angle(d => d.x).radius(d => d.y))
+    .attr('stroke', d => getNodeColor(d.target, currentColorMode));
+
+  // ----- Node groups -----
+  const node = g.selectAll('.node-group')
+    .data(root.descendants())
+    .join('g')
+    .attr('class', 'node-group')
+    .attr('transform', d => `rotate(${d.x * 180 / Math.PI - 90}) translate(${d.y},0)`)
+    .on('mouseenter', (evt, d) => showTooltip(evt, d))
+    .on('mouseleave', () => hideTooltip())
+    .on('click', (evt, d) => {
+      evt.stopPropagation();
+      if (d.data.children || d.data._collapsed) {
+        toggleNode(d.data);
+        renderMindMap();
+      }
+    });
+
+  const crot = d => -(d.x * 180 / Math.PI - 90);
+
+  // ----- Circles -----
+  node.append('circle')
+    .attr('class', 'node-circle')
+    .attr('r', d => {
+      if (d.data._root) return 42;
+      if (hasHiddenChildren(d.data)) return 18;
+      return d.children ? 14 : 8;
+    })
+    .attr('fill', d => getNodeColor(d, currentColorMode))
+    .attr('opacity', d => d.data._root ? 1 : 0.85)
+    .attr('stroke', d => {
+      if (d.data._root) return '#fff';
+      if (hasHiddenChildren(d.data)) return '#fff';
+      return 'none';
+    })
+    .attr('stroke-width', d => (d.data._root || hasHiddenChildren(d.data)) ? 2.5 : 0)
+    .attr('stroke-dasharray', d => hasHiddenChildren(d.data) ? '3,2' : 'none')
+    .style('cursor', d => (d.data.children || d.data._collapsed) ? 'pointer' : 'default');
+
+  // ----- Collapse / expand indicator (+/−) -----
+  node.filter(d => (d.data.children || d.data._collapsed) && !d.data._root)
+    .append('text')
+    .attr('text-anchor', 'middle')
+    .attr('dy', '0.35em')
+    .attr('fill', '#fff')
+    .attr('font-size', d => hasHiddenChildren(d.data) ? 16 : 12)
+    .attr('font-weight', '700')
+    .attr('pointer-events', 'none')
+    .text(d => hasHiddenChildren(d.data) ? '+' : '−');
+
+  // ----- Labels -----
+  node.append('text')
+    .attr('dy', '0.31em')
+    .attr('text-anchor', d => {
+      if (d.data._root) return 'middle';
+      const angleDeg = d.x * 180 / Math.PI;
+      return (angleDeg > 0 && angleDeg < 180) ? 'start' : 'end';
+    })
+    .attr('transform', d => {
+      const rot = crot(d);
+      if (d.data._root) return `rotate(${rot})`;
+      const angleDeg = d.x * 180 / Math.PI;
+      const offset = (angleDeg > 0 && angleDeg < 180) ? 22 : -22;
+      return `rotate(${rot}) translate(${offset},0)`;
+    })
+    .attr('fill', d => {
+      if (d.data._root) return '#fff';
+      if (hasHiddenChildren(d.data)) return '#fbbf24';
+      return '#e2e4ea';
+    })
+    .attr('font-size', d => d.data._root ? 15 : (d.depth === 1 ? 14 : 13))
+    .attr('font-weight', d => (d.data._root || d.depth === 1) ? '600' : '400')
+    .attr('pointer-events', 'none')
+    .each(function(d) {
+      const lines = d.data.name.split('\n');
+      const el = d3.select(this);
+      el.text('');
+      lines.forEach((line, i) => {
+        el.append('tspan')
+          .attr('x', 0)
+          .attr('dy', i === 0 ? (lines.length > 1 ? '-0.35em' : '0.31em') : '1.15em')
+          .text(line);
+      });
+      if (hasHiddenChildren(d.data)) {
+        const count = d.data._collapsed.length;
+        el.append('tspan')
+          .attr('fill', '#fbbf24')
+          .attr('font-size', 10)
+          .text(` (${count})`);
+      }
+    });
+
+  // ----- Status badges -----
+  node.filter(d => d.data._st && !d.data._root && (!d.children || hasHiddenChildren(d.data)))
+    .append('text')
+    .attr('text-anchor', d => {
+      const angleDeg = d.x * 180 / Math.PI;
+      return (angleDeg > 0 && angleDeg < 180) ? 'start' : 'end';
+    })
+    .attr('transform', d => {
+      const rot = crot(d);
+      const angleDeg = d.x * 180 / Math.PI;
+      const offset = (angleDeg > 0 && angleDeg < 180) ? 22 : -22;
+      return `rotate(${rot}) translate(${offset},-14)`;
+    })
+    .attr('fill', d => statusColors[d.data._st] || '#8b8fa3')
+    .attr('font-size', 10)
+    .attr('pointer-events', 'none')
+    .text(d => d.data._st);
+}
+
+// ===== Tooltip =====
+let tooltipHideTimer = null;
+
+function showTooltip(evt, d) {
+  if (!d.data._desc && !d.data._collapsed) return;
+  clearTimeout(tooltipHideTimer);
+  const tip = document.getElementById('mm-tooltip');
+  const h4 = tip.querySelector('h4');
+  const p = tip.querySelector('p');
+  const linksDiv = document.getElementById('tt-links');
+  const name = d.data.name.replace(/\n/g, ' ');
+  const statusHtml = d.data._st ? `<span class="tt-status" style="background:${statusColors[d.data._st] || '#555'}22;color:${statusColors[d.data._st] || '#888'}">${d.data._st}</span>` : '';
+  h4.innerHTML = name + statusHtml;
+  let desc = d.data._desc || '';
+  if (hasHiddenChildren(d.data)) {
+    const names = d.data._collapsed.map(c => c.name.replace(/\n/g,' ')).join(', ');
+    desc += (desc ? '<br><br>' : '') + '<strong style="color:#fbbf24">Collapsed children:</strong> ' + names + '<br><em style="color:#8b8fa3">Click to expand</em>';
+  } else if (d.data.children && d.data.children.length) {
+    desc += (desc ? '<br><br>' : '') + '<em style="color:#8b8fa3">Click to collapse</em>';
+  }
+  p.innerHTML = desc;
+
+  const links = d.data._links;
+  if (links && links.length) {
+    let linksHtml = '<div class="tt-links-title">Resources</div>';
+    links.forEach(lnk => {
+      linksHtml += `<div class="tt-link"><span class="tt-link-icon">🔗</span><a href="${lnk.u}" target="_blank" rel="noopener">${lnk.l}</a></div>`;
+    });
+    linksDiv.innerHTML = linksHtml;
+    linksDiv.style.display = '';
+  } else {
+    linksDiv.innerHTML = '';
+    linksDiv.style.display = 'none';
+  }
+
+  tip.classList.add('visible');
+  const container = document.getElementById('mindmap-container');
+  const rect = container.getBoundingClientRect();
+  const x = evt.clientX - rect.left + 16;
+  const y = evt.clientY - rect.top + 16;
+  tip.style.left = Math.min(x, rect.width - 400) + 'px';
+  tip.style.top = Math.min(y, rect.height - 200) + 'px';
+}
+
+function hideTooltip() {
+  tooltipHideTimer = setTimeout(() => {
+    document.getElementById('mm-tooltip').classList.remove('visible');
+  }, 250);
+}
+
+document.getElementById('mm-tooltip').addEventListener('mouseenter', () => { clearTimeout(tooltipHideTimer); });
+document.getElementById('mm-tooltip').addEventListener('mouseleave', () => { hideTooltip(); });
+
+// ===== Controls =====
+function recolorMap(mode, btn) {
+  currentColorMode = mode;
+  document.querySelectorAll('.mm-controls .mm-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderMindMap();
+}
+
+function zoomMap(factor) {
+  const svg = d3.select('#mindmap-svg');
+  svg.transition().duration(300).call(svgZoom.scaleBy, factor);
+}
+
+function resetZoom() {
+  const svg = d3.select('#mindmap-svg');
+  const width = document.getElementById('mindmap-container').clientWidth;
+  const height = parseInt(svg.attr('height'));
+  currentTransform = null;
+  svg.transition().duration(500).call(svgZoom.transform, d3.zoomIdentity.translate(width / 2, height / 2));
+}
+
+function toggleFullscreen() {
+  const container = document.getElementById('mindmap-container');
+  const btn = document.getElementById('fs-btn');
+  container.classList.toggle('fullscreen');
+  const isFS = container.classList.contains('fullscreen');
+  btn.innerHTML = isFS ? '&#x26F6; Exit' : '&#x26F6; Fullscreen';
+  setTimeout(() => { currentTransform = null; renderMindMap(); }, 50);
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.getElementById('mindmap-container').classList.contains('fullscreen')) {
+    toggleFullscreen();
+  }
+});
+
+// ===== Expand / Collapse All =====
+function expandAllNodes(node) {
+  if (node._collapsed) { node.children = node._collapsed; node._collapsed = null; }
+  if (node.children) node.children.forEach(expandAllNodes);
+}
+function collapseDepth(node, depth, current) {
+  if (!current) current = 0;
+  if (current >= depth && node.children) { node._collapsed = node.children; node.children = null; }
+  if (node.children) node.children.forEach(c => collapseDepth(c, depth, current + 1));
+}
+function expandAll() { expandAllNodes(mmData); renderMindMap(); }
+function collapseAll() {
+  expandAllNodes(mmData);
+  collapseDepth(mmData, 2, 0);
+  renderMindMap();
+}
+
+// ===== Init =====
+window.addEventListener('resize', () => { currentTransform = null; renderMindMap(); });
+renderMindMap();
+</script>
+
+</body>
+</html>
